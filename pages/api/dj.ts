@@ -16,8 +16,8 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  console.log(req.body);
-  const tokens = parseSlackWebhookPayload(req.body);
+  console.log(JSON.stringify(req.body));
+  const tokens = parseSlackWebhookPayload(JSON.stringify(req.body));
   const isValidPayload = isValidSlackWebhookPayload(tokens);
 
   if (!isValidPayload) {
