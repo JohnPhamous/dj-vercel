@@ -104,22 +104,16 @@ const addTrackToPlaylist = async (spotifyURL: string) => {
   spotifyApi.setAccessToken(SPOTIFY_AUTHORIZATION_CODE as string);
   spotifyApi.setRefreshToken(SPOTIFY_REFRESH_TOKEN as string);
 
-  // First retrieve an access token
-  spotifyApi
-    .refreshAccessToken()
-    .then(function (data) {
-      console.log(data);
-      spotifyApi.setAccessToken(data.body["access_token"]);
-      return spotifyApi.addTracksToPlaylist(SPOTIFY_PLAYLIST_ID as string, [
-        spotifyURL,
-      ]);
-    })
-    .then(function (data) {
-      console.log("Added tracks to the playlist!");
-    })
-    .catch(function (err) {
-      console.log("Something went wrong:", err.message);
-    });
+  const refreshAccessTokenResponse = await spotifyApi.refreshAccessToken();
+  spotifyApi.setAccessToken(refreshAccessTokenResponse.body.access_token);
+  try {
+    await spotifyApi.addTracksToPlaylist(SPOTIFY_PLAYLIST_ID as string, [
+      spotifyURL,
+    ]);
+    console.log(`Added ${spotifyURL} to playlist`);
+  } catch (e) {
+    console.error(`Failed to add ${spotifyURL}`, e);
+  }
 
   return {};
 };
