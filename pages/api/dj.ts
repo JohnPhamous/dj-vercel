@@ -16,8 +16,9 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  console.log(JSON.stringify(req.body));
-  const tokens = parseSlackWebhookPayload(JSON.stringify(req.body));
+  const tokens = parseSlackWebhookPayload(req.body, {
+    isLocalDevelopment: process.env.NODE_ENV === "development",
+  });
   const isValidPayload = isValidSlackWebhookPayload(tokens);
 
   if (!isValidPayload) {
@@ -47,16 +48,23 @@ export default async function handler(
  * @example
  * token=KRRTYv33kV3pdksdfsdfutOmmQ&team_id=T0CAQ00TU&team_domain=boba&service_id=33423964sdsd27&channel_id=C03AS41V0AC&channel_name=john-test&timestamp=1649115407.399629&user_id=U0asdA4JLBF&user_name=john.pham&text=%3Chttps%3A%2F%2Fopen.spotify.com%2Ftrack%2F6J1Qcreg3a9hlJuvJCvjl5%3Fsi%3D2vEISP1TS0iilwluZTeDSQ%3E
  */
-const parseSlackWebhookPayload = (payload: string) => {
-  const tokens = payload.split("&").reduce((prev: any, cur: any) => {
-    const [key, value] = cur.split("=");
-    return {
-      ...prev,
-      [key]: value,
-    };
-  }, {});
+const parseSlackWebhookPayload = (
+  payload: string,
+  { isLocalDevelopment }: { isLocalDevelopment: boolean }
+) => {
+  if (isLocalDevelopment) {
+    const tokens = payload.split("&").reduce((prev: any, cur: any) => {
+      const [key, value] = cur.split("=");
+      return {
+        ...prev,
+        [key]: value,
+      };
+    }, {});
 
-  return tokens;
+    return tokens;
+  }
+
+  return payload;
 };
 
 const isValidSlackWebhookPayload = (payload: any) => {
