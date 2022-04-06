@@ -122,8 +122,13 @@ const addTrackToPlaylist = async (spotifyURL: string) => {
       addTrackToMonthlyPlaylistPromise,
     ]);
 
-    // TODO
-    // Prune the monthly of tracks that were added over a month ago.
+    await pruneOldTracksFromPlaylist(
+      spotifyApi,
+      SPOTIFY_MONTHLY_PLAYLIST_ID as string,
+      // Ignoring the fact that months are not always 30 days long. 🙈
+      30
+    );
+
     console.log(`Added ${spotifyURL} to playlist`);
   } catch (e) {
     console.error(`Failed to add ${spotifyURL}`, e);
@@ -147,4 +152,37 @@ const getSpotifyAuthorizeURL = () => {
   const authorizeURL = spotifyApi.createAuthorizeURL(scopes, state);
 
   console.log(authorizeURL);
+};
+
+/**
+ * Removes all tracks from a playlist that were added more than `ageToPruneInDays` ago.
+ */
+const pruneOldTracksFromPlaylist = async (
+  spotifyClient: SpotifyWebApi,
+  playlistID: string,
+  ageToPruneInDays = 30
+) => {
+  const TODAY = new Date();
+  // TODO: Handle pagination
+  const { body } = await spotifyClient.getPlaylistTracks(playlistID, {
+    limit: 50,
+  });
+
+  const { items } = body;
+
+  const tracksToRemove = items.filter((track) => {
+    const diffInTime = TODAY.getTime() - new Date(track.added_at).getTime();
+    const diffInDays = diffInTime / (1000 * 3600 * 24);
+
+    return diffInDays >= ageToPruneInDays;
+  });
+
+  const tracksToRemoveURIs = tracksToRemove.map((track) => ({
+    uri: track.track.uri,
+  }));
+
+  await spotifyClient.removeTracksFromPlaylist(playlistID, tracksToRemoveURIs);
+  console.log(
+    `Pruned ${tracksToRemoveURIs.length} tracks from playlist ${playlistID}.`
+  );
 };
