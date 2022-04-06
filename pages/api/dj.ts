@@ -5,7 +5,8 @@ import SpotifyWebApi from "spotify-web-api-node";
 const URL_REGEX = /(https?:\/\/[^ ]*)/;
 
 const {
-  SPOTIFY_PLAYLIST_ID,
+  SPOTIFY_ARCHIVE_PLAYLIST_ID,
+  SPOTIFY_MONTHLY_PLAYLIST_ID,
   SPOTIFY_CLIENT_ID,
   SPOTIFY_CLIENT_SECRET,
   SPOTIFY_AUTHORIZATION_CODE,
@@ -107,9 +108,22 @@ const addTrackToPlaylist = async (spotifyURL: string) => {
   const refreshAccessTokenResponse = await spotifyApi.refreshAccessToken();
   spotifyApi.setAccessToken(refreshAccessTokenResponse.body.access_token);
   try {
-    await spotifyApi.addTracksToPlaylist(SPOTIFY_PLAYLIST_ID as string, [
-      spotifyURL,
+    // Add the track to both the archive and monthly playlists.
+    const addTrackToArchivePlaylistPromise = spotifyApi.addTracksToPlaylist(
+      SPOTIFY_ARCHIVE_PLAYLIST_ID as string,
+      [spotifyURL]
+    );
+    const addTrackToMonthlyPlaylistPromise = spotifyApi.addTracksToPlaylist(
+      SPOTIFY_MONTHLY_PLAYLIST_ID as string,
+      [spotifyURL]
+    );
+    await Promise.allSettled([
+      addTrackToArchivePlaylistPromise,
+      addTrackToMonthlyPlaylistPromise,
     ]);
+
+    // TODO
+    // Prune the monthly of tracks that were added over a month ago.
     console.log(`Added ${spotifyURL} to playlist`);
   } catch (e) {
     console.error(`Failed to add ${spotifyURL}`, e);
